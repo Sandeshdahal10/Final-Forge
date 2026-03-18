@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { config } from "dotenv";
 import cookieParser from "cookie-parser";
+import errorMiddleware from "./middlewares/error.js";
 
 
 config();
@@ -18,6 +19,7 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(errorMiddleware);
 
 export default app;
 
