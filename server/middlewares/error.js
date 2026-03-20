@@ -1,4 +1,4 @@
-class Errorhandler extends Error {
+ export class Errorhandler extends Error {
   // Custom Error Handler class banako to handle message and statusCode
   constructor(message, statusCode) {
     super(message);
