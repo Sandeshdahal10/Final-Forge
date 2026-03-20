@@ -25,9 +25,9 @@ export const registerUser = asyncHandler(async (req, res, next) => {
 });
 
 export const login = asyncHandler(async (req, res, next) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return next(new ErrorHandler("Please provide email and password", 400));
+  const { email, password,role } = req.body;
+  if (!email || !password || !role) {
+    return next(new ErrorHandler("Please provide email, password, and role", 400));
   }
   const user = await User.findOne({ email, role }).select("+password");
   if (!user) {
