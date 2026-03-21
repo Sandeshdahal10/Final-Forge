@@ -1,7 +1,7 @@
 //Register User
 
 import { asyncHandler } from "../middlewares/asyncHandler.js";
-import Errorhandler from "../middlewares/error.js";
+import {Errorhandler} from "../middlewares/error.js";
 import User from "../models/user.js";
 import { sendEmail } from "../services/emailService.js";
 import { generateForgotPasswordEmailTemplate } from "../utils/emailTemplates.js";
@@ -70,6 +70,7 @@ export const forgotPassword = asyncHandler(async (req, res, next) => {
   }
   const resetToken = user.getResetPasswordToken();
   // Here you would typically send the resetToken to the user via email
+
   await user.save({ validateBeforeSave: false });
 
   const resetPasswordUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
@@ -107,7 +108,7 @@ export const resetPassword = asyncHandler(async (req, res, next) => {
       new Errorhandler("Invalid or expired password reset token", 400),
     );
   }
-  if (!req.body.password || req.body.confirmPassword) {
+  if (!req.body.password || !req.body.confirmPassword) {
     return next(
       new Errorhandler("Please provide password and confirm password", 400),
     );
