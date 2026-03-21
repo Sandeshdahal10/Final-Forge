@@ -1,18 +1,19 @@
 //Register User
 
 import { asyncHandler } from "../middlewares/asyncHandler.js";
-import ErrorHandler from "../middlewares/error.js";
+import Errorhandler from "../middlewares/error.js";
 import User from "../models/user.js";
+import { generateForgotPasswordEmailTemplate } from "../utils/emailTemplates.js";
 import { generateToken } from "../utils/generateToken.js";
 
 export const registerUser = asyncHandler(async (req, res, next) => {
   const { name, email, password, role } = req.body;
   if (!name || !email || !password || !role) {
-    return next(new ErrorHandler("Please provide all required fields"));
+    return next(new Errorhandler("Please provide all required fields", 400));
   }
   let user = await User.findOne({ email });
   if (user) {
-    return next(new ErrorHandler("User already exists with this email", 400));
+    return next(new Errorhandler("User already exists with this email", 400));
   }
   user = new User({
     name,
@@ -28,25 +29,25 @@ export const login = asyncHandler(async (req, res, next) => {
   const { email, password, role } = req.body;
   if (!email || !password || !role) {
     return next(
-      new ErrorHandler("Please provide email, password, and role", 400),
+      new Errorhandler("Please provide email, password, and role", 400),
     );
   }
   const user = await User.findOne({ email, role }).select("+password");
   if (!user) {
-    return next(new ErrorHandler("Invalid email or password or role", 401));
+    return next(new Errorhandler("Invalid email or password or role", 401));
   }
   const isPasswordMatch = await user.comparePassword(password);
   if (!isPasswordMatch) {
-    return next(new ErrorHandler("Invalid password", 401));
+    return next(new Errorhandler("Invalid password", 401));
   }
   generateToken(user, 200, "User logged in successfully", res);
 });
 export const getUser = asyncHandler(async (req, res, next) => {
-    const user = req.user;
-    res.status(200).json({
-        success: true,
-        user
-    });
+  const user = req.user;
+  res.status(200).json({
+    success: true,
+    user,
+  });
 });
 export const logout = asyncHandler(async (req, res, next) => {
   res
@@ -60,5 +61,33 @@ export const logout = asyncHandler(async (req, res, next) => {
       message: "User Logged Out successfully",
     });
 });
-export const forgotPassword = asyncHandler(async (req, res, next) => {});
+export const forgotPassword = asyncHandler(async (req, res, next) => {
+  const user = await User.findOne({ email: req.body.email });
+  if (!user) {
+    return next(new Errorhandler("User not found with this email", 404));
+  }
+  const resetToken = user.getResetPasswordToken();
+  // Here you would typically send the resetToken to the user via email
+  await user.save({ validateBeforeSave: false });
+
+  const resetPasswordUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+  const message = generateForgotPasswordEmailTemplate(resetPasswordUrl);
+
+  try {
+    await sendEmail({
+      to: user.email,
+      subject: "FYP System - Password Reset Request",
+      message,
+    });
+    res.status(200).json({
+      success: true,
+      message: `Email sent to ${user.email} with password reset instructions`,
+    });
+  } catch (error) {
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save({ validateBeforeSave: false });
+    return next(new Errorhandler(error.message || "Failed to send email", 500));
+  }
+});
 export const resetPassword = asyncHandler(async (req, res, next) => {});
